@@ -1,10 +1,3 @@
-# Make sure to have the add-on "ZMQ remote API" running in CoppeliaSim. Do not launch simulation, but run this script. Do not mannually close this script, stop the simulation so drawing is correctly deleted
-
-
-# NOTE: I have not coded much in python, so I am not sure how to export the necessary packages with this script. Looking online said that the person with the script usually downloads required packages.
-# I am not sure if this is correct at all, so please tell me to change this in the future if I need to. The package I used can be found with the command "pip install coppeliasim-zmqremoteapi-client".
-
-
 import math
 import time
 import random
@@ -30,7 +23,7 @@ target = sim.getObject('/Quadcopter/target')
 sim.startSimulation()
 lineIntersctions = []
 def dijkstraNavigation():
-    currentPoint = [objectAbsolutePosition[0], objectAbsolutePosition[1]] 
+    currentPoint = [objectAbsolutePosition[0], objectAbsolutePosition[1]]
     destinatiPoint = listOfPoints[newPointIndex]
 
     closestPoint = listOfPoints[0]
@@ -84,7 +77,7 @@ def dijkstraNavigation():
     plt.scatter(x_points, y_points, color='black')
     plt.show()
     totalPoints = [[closestPoint[0], closestPoint[1], 0]]
-    
+
 
     print(lineIntersctions)
 
@@ -126,7 +119,7 @@ def dijkstraNavigation():
                     pointsToSearch.pop(i)
                     i = i -1
                     break
-            i = i + 1		
+            i = i + 1
 
         if len(pointsToSearch) > 0:
             for j in range(len(totalPoints)):
@@ -155,7 +148,7 @@ def dijkstraNavigation():
                         lowestDist = totalPoints[j][2]
                         lowestDest = [totalPoints[j][0], totalPoints[j][1]]
                         break
-                
+
                 for j in range(1, len(lineIntersctions[i])):
                     curLink = lineIntersctions[i]
                     for k in range(len(totalPoints)):
@@ -169,7 +162,7 @@ def dijkstraNavigation():
                     searching = False
 
                 break
-    
+
     # Plotting minimum path
     for i in range(len(pointsToVisit) - 1):
         start_point = (pointsToVisit[i][0], pointsToVisit[i][1])  # (x1, y1)
@@ -178,7 +171,7 @@ def dijkstraNavigation():
         x_points = np.array([start_point[0], end_point[0]])
         y_points = np.array([start_point[1], end_point[1]])
 
-        plt.plot(x_points, y_points, color='green')			
+        plt.plot(x_points, y_points, color='green')
 
     plt.xlabel("X-axis")
     plt.ylabel("Y-axis")
@@ -222,7 +215,7 @@ def sysCall_sensing(lastPointFound):
             coord[1]=depth[0]*math.tan(yAngle*0.5)*(blobPositionY-0.5)/0.5
             coord=sim.multiplyVector(m,coord)
             sim.addDrawingObjectItem(sphereContainer,coord)
-           
+
             depthLeft, test=sim.getVisionSensorDepth(sensor,1,[1+math.floor(((blobSize*.5+blobPositionX)-.01)*(resX-0.99)),1+math.floor(blobPositionY*(resY-0.99))],[1,1])
             depthLeft=sim.unpackFloatTable(depthLeft)
             coordLeft=[0,0,depthLeft[0]]
@@ -234,7 +227,7 @@ def sysCall_sensing(lastPointFound):
             coordLeft[1]=depthLeft[0]*math.tan(yAngle*0.5)*(blobPositionY-0.5)/0.5
             coordLeft=sim.multiplyVector(m,coordLeft)
             sim.addDrawingObjectItem(sphereContainer,coordLeft)
-           
+
 
             depthRight, test = sim.getVisionSensorDepth(sensor,1,[1+math.floor((blobPositionX-blobSize*.5)*(resX-0.99)),1+math.floor(blobPositionY*(resY-0.99))],[1,1])
             depthRight=sim.unpackFloatTable(depthRight)
@@ -296,12 +289,12 @@ def is_between_points_dist(A, B, C):
     AB = distance(A, B)
     AC = distance(A, C)
     CB = distance(C, B)
-       
+
     return (AC + CB) - AB <= .001
 
 #Function for if two lines intersect
 def line_intersection(p1, p2, p3, p4):
-   
+
     D = ((p1[0] - p2[0]) * (p3[1] - p4[1])) -  ((p1[1] - p2[1]) * (p3[0] - p4[0]))
     if D == 0:
         return True
@@ -320,7 +313,7 @@ def newRRTNode():
     xCoord = random.uniform(-10, 6)
     yCoord = random.uniform(-6, 10)
     xNew = np.array([xCoord, yCoord])
-   
+
     # Making sure the point isn't in a wall
     collisions = False
     for i in range(len(obstacles)):
@@ -365,7 +358,7 @@ def newRRTNode():
                 newPoint[0] = p1[0]-.5
             elif (newPoint[0] >= p1[0] and newPoint[0] >= p2[0]) and abs(newPoint[0] - p1[0]) < .5 and (p1[1] <= newPoint[1] <= p2[1] or p1[1] >= newPoint[1] >= p2[1]):
                 newPoint[0] = p1[0]+.5
-           
+
             if (newPoint[1] <= p1[1] and newPoint[1] <= p2[1]) and abs(newPoint[1] - p1[1]) < .5 and (p1[0] <= newPoint[0] <= p2[0] or p1[0] >= newPoint[0] >= p2[0]):
                 newPoint[1] = p1[1]-.5
             elif (newPoint[1] >= p1[1] and newPoint[1] >= p2[1]) and abs(p1[1] - newPoint[1]) < .5 and (p1[0] <= newPoint[0] <= p2[0] or p1[0] >= newPoint[0] >= p2[0]):
@@ -373,10 +366,10 @@ def newRRTNode():
 
         # Storing the cost of the new node and checking for better nearby points
         curLowestCost = np.linalg.norm(((newPoint-closestPoint)/np.linalg.norm((newPoint-closestPoint)))) + closestCost
-        
+
         for i in range(len(listOfPoints)):
             pointToComp = np.array(listOfPoints[i])
-           
+
             intersection = False
             for k in range(len(obstacles)):
                 p1 = (obstacles[k][0][0], obstacles[k][0][1])  # (x1, y1)
@@ -389,17 +382,17 @@ def newRRTNode():
                 if np.linalg.norm(((newPoint-pointToComp)/np.linalg.norm((newPoint-pointToComp)))) + listOfCosts[i] < curLowestCost:
                     closestPoint = pointToComp
                     curLowestCost = np.linalg.norm(((newPoint-pointToComp)/np.linalg.norm((newPoint-pointToComp)))) + listOfCosts[i]
-               
-        
+
+
         # Storing the new point, edge, and cost of the node
         listOfPoints.append([newPoint[0], newPoint[1]])
         listOfCosts.append(curLowestCost)
         listOfEdges.append([closestPoint[0],closestPoint[1], newPoint[0], newPoint[1]])
-        
+
         # With the new point established, nearby points will be check to see if the cost from going from the new point to the nearby point is better
         for i in range(0, len(listOfPoints)-1):
             pointToComp = np.array(listOfPoints[i])
-           
+
             intersection = False
             for k in range(len(obstacles)):
                 p1 = (obstacles[k][0][0], obstacles[k][0][1])  # (x1, y1)
@@ -413,10 +406,10 @@ def newRRTNode():
                     listOfEdges[i-1][0] = newPoint[0]
                     listOfEdges[i-1][1] = newPoint[1]
                     listOfCosts[i] = np.linalg.norm(((newPoint-pointToComp)/np.linalg.norm((newPoint-pointToComp)))) + curLowestCost
-        
+
     # Need to trace back from the final point to the start
     curPoint = listOfPoints[len(listOfPoints)-1]
-   
+
     return len(listOfPoints)-1, len(listOfEdges)-1
 
 
@@ -454,7 +447,7 @@ def reevaluatePoint():
             elif (listOfPoints[pointIndex][0] >= p1[0] and listOfPoints[pointIndex][0] >= p2[0]) and (closestPoint[0] >= p1[0] and closestPoint[0] >= p2[0]) and abs(p1[0] - listOfPoints[pointIndex][0]) < .5 and (p1[1] <= listOfPoints[pointIndex][1] <= p2[1] or p1[1] >= listOfPoints[pointIndex][1] >= p2[1]):
                 update = True
                 listOfPoints[pointIndex][0] = p1[0]+.5
-        
+
             if (listOfPoints[pointIndex][1] <= p1[1] and listOfPoints[pointIndex][1] <= p2[1]) and (closestPoint[1] <= p1[1] and closestPoint[1] <= p2[1]) and abs(listOfPoints[pointIndex][1] - p1[1]) < .5 and (p1[0] <= listOfPoints[pointIndex][0] <= p2[0] or p1[0] >= listOfPoints[pointIndex][0] >= p2[0]):
                 update = True
                 listOfPoints[pointIndex][1] = p1[1]-.5
@@ -480,7 +473,7 @@ def reevaluatePoint():
             numCheck = 1
             sim.setObjectPosition(target, sim.handle_world, [checkX, checkY, .7])
             needNewPoint = False
-   
+
 
 
 needNewPoint = True
@@ -493,7 +486,7 @@ numCheck = 0
 
 while sim.getSimulationState()!=0:
     objectAbsolutePosition=np.array(sim.getObjectPosition(robot,sim.handle_world ))
-   
+
     coord, coordLeft, coordRight = sysCall_sensing(lastPointFound)
     if len(lastPointFound) != 0 and len(coord) > 0 and ((abs(coord[1]-lastPointFound[1]) > .1) or (abs(coord[0]-lastPointFound[0]) > .1)) and coord[2] > .3:
         print("NEW!")
@@ -528,7 +521,7 @@ while sim.getSimulationState()!=0:
                 rotation = math.atan2(listOfPoints[newPointIndex][1] - objectAbsolutePosition[1], listOfPoints[newPointIndex][0] - objectAbsolutePosition[0]) - 1.5708
                 sim.setObjectOrientation(robot, [0, 0, rotation])
                 sim.setObjectOrientation(target, [0, 0, rotation])
-            
+
                 if sim.getSimulationState()!=0:
                     time.sleep(1)
                     slightDifX = (listOfPoints[newPointIndex][0] - targetAbsolutePosition[0]) * .25
@@ -548,7 +541,7 @@ while sim.getSimulationState()!=0:
             else:
                 dijkstraNavigation()
 
-   
+
     if not needNewPoint:
         if abs(objectAbsolutePosition[0] - checkX) < .5 and abs(objectAbsolutePosition[1] -checkY) < .5:
                 print("UP")
@@ -560,7 +553,7 @@ while sim.getSimulationState()!=0:
                  sim.setObjectPosition(target, sim.handle_world, [checkX, checkY, .7])
         if abs(objectAbsolutePosition[0] - listOfPoints[newPointIndex][0]) < .5 and abs(objectAbsolutePosition[1] - listOfPoints[newPointIndex][1]) < .5:
             needNewPoint = True
-    
+
     coord, coordLeft, coordRight = sysCall_sensing(lastPointFound)
     if len(lastPointFound) != 0 and len(coord) > 0 and ((abs(coord[1]-lastPointFound[1]) > .1) or (abs(coord[0]-lastPointFound[0]) > .1)) and coord[2] > .3:
         print("NEW!")
@@ -572,13 +565,13 @@ while sim.getSimulationState()!=0:
         lastPointFound = coord
         obstacles.append([coordLeft, coordRight])
         reevaluatePoint()
-    
+
     rotation = math.atan2(listOfPoints[newPointIndex][1] - objectAbsolutePosition[1], listOfPoints[newPointIndex][0] - objectAbsolutePosition[0]) - 1.5708
     print(rotation)
     sim.setObjectOrientation(robot, [0, 0, rotation])
     sim.setObjectOrientation(target, [0, 0, rotation])
 
-   
+
 
 
 
