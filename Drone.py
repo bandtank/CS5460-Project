@@ -450,6 +450,21 @@ class DroneNavigator:
     # Display the plot
     plt.show()
 
+  def start_simulation(self):
+    if self.sim.getSimulationState() != 0:
+      self.stop_simulation()
+
+    time.sleep(1) # Wait for CoppeliaSim
+
+    self.sim.startSimulation()
+
+  def configure_simulation(self):
+    self.ctx.configure_scene()
+
+  def stop_simulation(self):
+    if self.sim.getSimulationState() != 0:
+      self.sim.stopSimulation()
+
   def run(self):
     while self.sim.getSimulationState() != 0:
       self.objectAbsolutePosition = np.array(self.sim.getObjectPosition(self.robot, self.sim.handle_world))
@@ -573,4 +588,7 @@ class DroneNavigator:
 if __name__ == "__main__":
  ctx = SimulationContext()
  navigator = DroneNavigator(ctx)
+ navigator.start_simulation()
+ navigator.configure_simulation()
  navigator.run()
+ navigator.stop_simulation()

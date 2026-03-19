@@ -4,21 +4,15 @@ from coppeliasim_zmqremoteapi_client import RemoteAPIClient
 
 class SimulationContext:
   def __init__(self):
-    print('Program started. Do not mannually close this script, stop the simulation so drawing is correctly deleted.')
-
-    # Using ZMQ remote API to connect to the simulation
     self.client = RemoteAPIClient()
     self.sim = self.client.require('sim')
     self.simVision = self.client.require('simVision')
 
-    # Getting the objects from the scene that are needed for the script
     self.robot = self.sim.getObject('/Quadcopter')
     self.sensor = self.sim.getObject('/Quadcopter/blobTo3dPosition/sensor')
     self.target = self.sim.getObject('/Quadcopter/target')
 
-    # Starting simulation
-    self.sim.startSimulation()
-
+  def configure_scene(self):
     self.sphereContainer = self.sim.addDrawingObject(self.sim.drawing_spherepts, 0.03, 0, -1, 9999, [1, 0, 1])
     self.xAngle = self.sim.getObjectFloatParam(self.sensor, self.sim.visionfloatparam_perspective_angle)
     self.resX = self.sim.getObjectInt32Param(self.sensor, self.sim.visionintparam_resolution_x)
@@ -30,6 +24,14 @@ class SimulationContext:
       self.yAngle = 2 * math.atan(math.tan(self.xAngle / 2) / ratio)
     else:
       self.xAngle = 2 * math.atan(math.tan(self.yAngle / 2) / ratio)
+
+  def start_simulation(self):
+    if self.sim.getSimulationState() == 0:
+      self.sim.startSimulation()
+
+  def stop_simulation(self):
+    if self.sim.getSimulationState() != 0:
+      self.sim.stopSimulation()
 
   def sysCall_sensing(self, lastPointFound):
     m = self.sim.getObjectMatrix(self.sensor)
