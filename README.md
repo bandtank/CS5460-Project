@@ -1,3 +1,4 @@
+# Installation
 #### Python Version
 This project is designed to use Python 3.14.x. E.g.:
 ```
@@ -33,3 +34,8 @@ pip install -r requirements.txt
 
 #### Final Steps
 The environment should be ready to use at this point.
+
+# Development
+* Make sure to have the add-on "ZMQ remote API" running in CoppeliaSim.
+* Do not launch simulation, but run this script.
+* Do not mannually close this script, stop the simulation so drawing is correctly deleted
