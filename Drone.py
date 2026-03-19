@@ -1,6 +1,8 @@
 import math
 import time
 import random
+from datetime import datetime
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -447,8 +449,13 @@ class DroneNavigator:
     plt.title('Line from Start to End Point')
     plt.grid(True)
 
-    # Display the plot
-    plt.show()
+    output_dir = Path("output")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().astimezone().isoformat(timespec="seconds")
+    output_path = output_dir / f"{timestamp}.png"
+    plt.savefig(output_path)
+    plt.close()
+    return output_path
 
   def start_simulation(self):
     if self.sim.getSimulationState() != 0:
@@ -582,8 +589,10 @@ class DroneNavigator:
       self.sim.setObjectOrientation(self.robot, [0, 0, rotation])
       self.sim.setObjectOrientation(self.target, [0, 0, rotation])
 
-    self.plot_summary()
+    output_path = self.plot_summary()
+    print(f"Saved plot to {output_path}")
     print('Program ended')
+    return
 
 if __name__ == "__main__":
   ctx = SimulationContext()
