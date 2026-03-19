@@ -586,9 +586,13 @@ class DroneNavigator:
     print('Program ended')
 
 if __name__ == "__main__":
- ctx = SimulationContext()
- navigator = DroneNavigator(ctx)
- navigator.start_simulation()
- navigator.configure_simulation()
- navigator.run()
- navigator.stop_simulation()
+  ctx = SimulationContext()
+  navigator = DroneNavigator(ctx)
+  try:
+    navigator.start_simulation()
+    navigator.configure_simulation()
+    navigator.run()
+  except KeyboardInterrupt:
+    print("Keyboard interrupt received, stopping simulation...")
+  finally:
+    ctx.stop_simulation()
