@@ -472,122 +472,125 @@ class DroneNavigator:
     if self.sim.getSimulationState() != 0:
       self.sim.stopSimulation()
 
+  def _scan_and_update_obstacles(self):
+    coord, coordLeft, coordRight = self.ctx.sysCall_sensing(self.lastPointFound)
+    if (
+      len(self.lastPointFound) != 0
+      and len(coord) > 0
+      and ((abs(coord[1] - self.lastPointFound[1]) > 0.1) or (abs(coord[0] - self.lastPointFound[0]) > 0.1))
+      and coord[2] > 0.3
+    ):
+      print('NEW!')
+      self.lastPointFound = coord
+      self.obstacles.append([coordLeft, coordRight])
+      self.reevaluatePoint()
+    elif len(self.lastPointFound) == 0 and len(coord) != 0 and coord[2] > 0.1:
+      print('NEW!')
+      self.lastPointFound = coord
+      self.obstacles.append([coordLeft, coordRight])
+      self.reevaluatePoint()
+
+  def _should_use_dijkstra(self):
+    for i in range(len(self.obstacles)):
+      p1 = (self.obstacles[i][0][0], self.obstacles[i][0][1])  # (x1, y1)
+      p2 = (self.obstacles[i][1][0], self.obstacles[i][1][1])  # (x2, y2)
+      # If the edge between the points goes through a wall, it is forced back to the correct side of the wall
+      if Geometry.line_intersection(
+        p1,
+        p2,
+        [self.objectAbsolutePosition[0], self.objectAbsolutePosition[1]],
+        self.listOfPoints[self.newPointIndex],
+      ) is True:
+        print('DIJ')
+        return True
+    return False
+
+  def _set_heading_to_new_point(self):
+    rotation = (
+      math.atan2(
+        self.listOfPoints[self.newPointIndex][1] - self.objectAbsolutePosition[1],
+        self.listOfPoints[self.newPointIndex][0] - self.objectAbsolutePosition[0],
+      )
+      - 1.5708
+    )
+    self.sim.setObjectOrientation(self.robot, [0, 0, rotation])
+    self.sim.setObjectOrientation(self.target, [0, 0, rotation])
+
+  def _initialize_target_step(self, targetAbsolutePosition):
+    if self.sim.getSimulationState() != 0:
+      time.sleep(1)
+      self.slightDifX = (self.listOfPoints[self.newPointIndex][0] - targetAbsolutePosition[0]) * 0.25
+      self.slightDifY = (self.listOfPoints[self.newPointIndex][1] - targetAbsolutePosition[1]) * 0.25
+      while self.slightDifX > 0.2 or self.slightDifX < -0.2:
+        self.slightDifX = self.slightDifX * 0.5
+        self.slightDifY = self.slightDifY * 0.5
+
+      while self.slightDifY > 0.2 or self.slightDifY < -0.2:
+        self.slightDifX = self.slightDifX * 0.5
+        self.slightDifY = self.slightDifY * 0.5
+      self.checkX = targetAbsolutePosition[0] + self.slightDifX
+      self.checkY = targetAbsolutePosition[1] + self.slightDifY
+      self.numCheck = 1
+      self.sim.setObjectPosition(self.target, self.sim.handle_world, [self.checkX, self.checkY, 0.7])
+      self.needNewPoint = False
+
+  def _handle_new_point_request(self):
+    if not self.needNewPoint:
+      return
+
+    print('NEW')
+    time.sleep(2)
+    if self.sim.getSimulationState() != 0:
+      self.reevaluatePoint()
+      self.newPointIndex, self.newEdgeIndex = self.newRRTNode()
+
+      if self._should_use_dijkstra() is False:
+        targetAbsolutePosition = np.array(self.sim.getObjectPosition(self.target, self.sim.handle_world))
+        targetAbsoluteRotation = np.array(self.sim.getObjectOrientation(self.target))
+
+        self._set_heading_to_new_point()
+        self._initialize_target_step(targetAbsolutePosition)
+      else:
+        self.dijkstraNavigation()
+
+  def _update_active_target_progress(self):
+    if self.needNewPoint:
+      return
+
+    if abs(self.objectAbsolutePosition[0] - self.checkX) < 0.5 and abs(self.objectAbsolutePosition[1] - self.checkY) < 0.5:
+      print('UP')
+      time.sleep(0.5)
+      if self.sim.getSimulationState() != 0:
+        self.checkX = self.checkX + self.slightDifX
+        self.checkY = self.checkY + self.slightDifY
+        self.numCheck = self.numCheck + 1
+        self.sim.setObjectPosition(self.target, self.sim.handle_world, [self.checkX, self.checkY, 0.7])
+    if (
+      abs(self.objectAbsolutePosition[0] - self.listOfPoints[self.newPointIndex][0]) < 0.5
+      and abs(self.objectAbsolutePosition[1] - self.listOfPoints[self.newPointIndex][1]) < 0.5
+    ):
+      self.needNewPoint = True
+
+  def _update_heading(self):
+    rotation = (
+      math.atan2(
+        self.listOfPoints[self.newPointIndex][1] - self.objectAbsolutePosition[1],
+        self.listOfPoints[self.newPointIndex][0] - self.objectAbsolutePosition[0],
+      )
+      - 1.5708
+    )
+    print(rotation)
+    self.sim.setObjectOrientation(self.robot, [0, 0, rotation])
+    self.sim.setObjectOrientation(self.target, [0, 0, rotation])
+
   def run(self):
     while self.sim.getSimulationState() != 0:
       self.objectAbsolutePosition = np.array(self.sim.getObjectPosition(self.robot, self.sim.handle_world))
-
-      coord, coordLeft, coordRight = self.ctx.sysCall_sensing(self.lastPointFound)
-      if (
-        len(self.lastPointFound) != 0
-        and len(coord) > 0
-        and ((abs(coord[1] - self.lastPointFound[1]) > 0.1) or (abs(coord[0] - self.lastPointFound[0]) > 0.1))
-        and coord[2] > 0.3
-      ):
-        print('NEW!')
-        self.lastPointFound = coord
-        self.obstacles.append([coordLeft, coordRight])
-        self.reevaluatePoint()
-      elif len(self.lastPointFound) == 0 and len(coord) != 0 and coord[2] > 0.1:
-        print('NEW!')
-        self.lastPointFound = coord
-        self.obstacles.append([coordLeft, coordRight])
-        self.reevaluatePoint()
-
-      if self.needNewPoint:
-        print('NEW')
-        time.sleep(2)
-        if self.sim.getSimulationState() != 0:
-          self.reevaluatePoint()
-          self.newPointIndex, self.newEdgeIndex = self.newRRTNode()
-          needDij = False
-          for i in range(len(self.obstacles)):
-            p1 = (self.obstacles[i][0][0], self.obstacles[i][0][1])  # (x1, y1)
-            p2 = (self.obstacles[i][1][0], self.obstacles[i][1][1])  # (x2, y2)
-            # If the edge between the points goes through a wall, it is forced back to the correct side of the wall
-            if Geometry.line_intersection(
-              p1,
-              p2,
-              [self.objectAbsolutePosition[0], self.objectAbsolutePosition[1]],
-              self.listOfPoints[self.newPointIndex],
-            ) is True:
-              print('DIJ')
-              needDij = True
-
-          if needDij is False:
-            targetAbsolutePosition = np.array(self.sim.getObjectPosition(self.target, self.sim.handle_world))
-            targetAbsoluteRotation = np.array(self.sim.getObjectOrientation(self.target))
-
-            rotation = (
-              math.atan2(
-                self.listOfPoints[self.newPointIndex][1] - self.objectAbsolutePosition[1],
-                self.listOfPoints[self.newPointIndex][0] - self.objectAbsolutePosition[0],
-              )
-              - 1.5708
-            )
-            self.sim.setObjectOrientation(self.robot, [0, 0, rotation])
-            self.sim.setObjectOrientation(self.target, [0, 0, rotation])
-
-            if self.sim.getSimulationState() != 0:
-              time.sleep(1)
-              self.slightDifX = (self.listOfPoints[self.newPointIndex][0] - targetAbsolutePosition[0]) * 0.25
-              self.slightDifY = (self.listOfPoints[self.newPointIndex][1] - targetAbsolutePosition[1]) * 0.25
-              while self.slightDifX > 0.2 or self.slightDifX < -0.2:
-                self.slightDifX = self.slightDifX * 0.5
-                self.slightDifY = self.slightDifY * 0.5
-
-              while self.slightDifY > 0.2 or self.slightDifY < -0.2:
-                self.slightDifX = self.slightDifX * 0.5
-                self.slightDifY = self.slightDifY * 0.5
-              self.checkX = targetAbsolutePosition[0] + self.slightDifX
-              self.checkY = targetAbsolutePosition[1] + self.slightDifY
-              self.numCheck = 1
-              self.sim.setObjectPosition(self.target, self.sim.handle_world, [self.checkX, self.checkY, 0.7])
-              self.needNewPoint = False
-          else:
-            self.dijkstraNavigation()
-
-      if not self.needNewPoint:
-        if abs(self.objectAbsolutePosition[0] - self.checkX) < 0.5 and abs(self.objectAbsolutePosition[1] - self.checkY) < 0.5:
-          print('UP')
-          time.sleep(0.5)
-          if self.sim.getSimulationState() != 0:
-            self.checkX = self.checkX + self.slightDifX
-            self.checkY = self.checkY + self.slightDifY
-            self.numCheck = self.numCheck + 1
-            self.sim.setObjectPosition(self.target, self.sim.handle_world, [self.checkX, self.checkY, 0.7])
-        if (
-          abs(self.objectAbsolutePosition[0] - self.listOfPoints[self.newPointIndex][0]) < 0.5
-          and abs(self.objectAbsolutePosition[1] - self.listOfPoints[self.newPointIndex][1]) < 0.5
-        ):
-          self.needNewPoint = True
-
-      coord, coordLeft, coordRight = self.ctx.sysCall_sensing(self.lastPointFound)
-      if (
-        len(self.lastPointFound) != 0
-        and len(coord) > 0
-        and ((abs(coord[1] - self.lastPointFound[1]) > 0.1) or (abs(coord[0] - self.lastPointFound[0]) > 0.1))
-        and coord[2] > 0.3
-      ):
-        print('NEW!')
-        self.lastPointFound = coord
-        self.obstacles.append([coordLeft, coordRight])
-        self.reevaluatePoint()
-      elif len(self.lastPointFound) == 0 and len(coord) != 0 and coord[2] > 0.1:
-        print('NEW!')
-        self.lastPointFound = coord
-        self.obstacles.append([coordLeft, coordRight])
-        self.reevaluatePoint()
-
-      rotation = (
-        math.atan2(
-          self.listOfPoints[self.newPointIndex][1] - self.objectAbsolutePosition[1],
-          self.listOfPoints[self.newPointIndex][0] - self.objectAbsolutePosition[0],
-        )
-        - 1.5708
-      )
-      print(rotation)
-      self.sim.setObjectOrientation(self.robot, [0, 0, rotation])
-      self.sim.setObjectOrientation(self.target, [0, 0, rotation])
+      self._scan_and_update_obstacles()
+      self._handle_new_point_request()
+      self._update_active_target_progress()
+      self._scan_and_update_obstacles()
+      self._update_heading()
 
     output_path = self.plot_summary()
     print(f"Saved plot to {output_path}")
