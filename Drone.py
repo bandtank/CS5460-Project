@@ -9,6 +9,11 @@ import matplotlib.pyplot as plt
 from Geometry import Geometry
 from Context import SimulationContext
 
+# consts for sleeps
+SLEEP_TARGET_STEP = 0.75
+SLEEP_NEW_POINT = 1.5
+SLEEP_TARGET_PROGRESS = 0.3
+
 class DroneNavigator:
   def __init__(self, sim_ctx):
     self.ctx = sim_ctx
@@ -518,7 +523,7 @@ class DroneNavigator:
 
   def _initialize_target_step(self, targetAbsolutePosition):
     if self.sim.getSimulationState() != 0:
-      time.sleep(1)
+      time.sleep(SLEEP_TARGET_STEP)
       self.slightDifX = (self.listOfPoints[self.newPointIndex][0] - targetAbsolutePosition[0]) * 0.25
       self.slightDifY = (self.listOfPoints[self.newPointIndex][1] - targetAbsolutePosition[1]) * 0.25
       while self.slightDifX > 0.2 or self.slightDifX < -0.2:
@@ -539,7 +544,7 @@ class DroneNavigator:
       return
 
     print('NEW')
-    time.sleep(2)
+    time.sleep(SLEEP_NEW_POINT)
     if self.sim.getSimulationState() != 0:
       self.reevaluatePoint()
       self.newPointIndex, self.newEdgeIndex = self.newRRTNode()
@@ -559,7 +564,7 @@ class DroneNavigator:
 
     if abs(self.objectAbsolutePosition[0] - self.checkX) < 0.5 and abs(self.objectAbsolutePosition[1] - self.checkY) < 0.5:
       print('UP')
-      time.sleep(0.5)
+      time.sleep(SLEEP_TARGET_PROGRESS)
       if self.sim.getSimulationState() != 0:
         self.checkX = self.checkX + self.slightDifX
         self.checkY = self.checkY + self.slightDifY
@@ -584,7 +589,11 @@ class DroneNavigator:
     self.sim.setObjectOrientation(self.target, [0, 0, rotation])
 
   def run(self):
+    start_time = time.time()
     while self.sim.getSimulationState() != 0:
+      if time.time() - start_time > 60:
+        print("Time limit reached, stopping simulation...")
+        break
       self.objectAbsolutePosition = np.array(self.sim.getObjectPosition(self.robot, self.sim.handle_world))
       self._scan_and_update_obstacles()
       self._handle_new_point_request()
