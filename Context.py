@@ -1,4 +1,5 @@
 import math
+import time
 
 from coppeliasim_zmqremoteapi_client import RemoteAPIClient
 
@@ -28,6 +29,7 @@ class SimulationContext:
   def start_simulation(self):
     if self.sim.getSimulationState() == 0:
       self.sim.startSimulation()
+    time.sleep(1) # Wait for CoppeliaSim
 
   def stop_simulation(self):
     if self.sim.getSimulationState() != 0:

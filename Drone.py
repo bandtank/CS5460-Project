@@ -462,21 +462,6 @@ class DroneNavigator:
     plt.close()
     return output_path
 
-  def start_simulation(self):
-    if self.sim.getSimulationState() != 0:
-      self.stop_simulation()
-
-    time.sleep(1) # Wait for CoppeliaSim
-
-    self.sim.startSimulation()
-
-  def configure_simulation(self):
-    self.ctx.configure_scene()
-
-  def stop_simulation(self):
-    if self.sim.getSimulationState() != 0:
-      self.sim.stopSimulation()
-
   def _scan_and_update_obstacles(self):
     coord, coordLeft, coordRight = self.ctx.sysCall_sensing(self.lastPointFound)
     if (
@@ -608,12 +593,13 @@ class DroneNavigator:
 
 if __name__ == "__main__":
   ctx = SimulationContext()
+  ctx.start_simulation()
+  ctx.configure_scene()
+
   navigator = DroneNavigator(ctx)
   try:
-    navigator.start_simulation()
-    navigator.configure_simulation()
     navigator.run()
   except KeyboardInterrupt:
-    print("Keyboard interrupt received, stopping simulation...")
+    print("SIGINT - stopping simulation")
   finally:
     ctx.stop_simulation()
