@@ -12,6 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import array
+from collections import deque
 from coppeliasim_zmqremoteapi_client import RemoteAPIClient
 
 def moveDrone():
@@ -362,41 +363,42 @@ def newRRTNode():
     # This will pull the tree towards a random point
     closestDist = -1
     closestLoc = [] 
-    p = len(listOfPoints)-1
+    p = len(listOfBackPoints)-1
     while p >= 0:
-        print(listOfPoints[p])
+        print(listOfBackPoints[p])
         for k in range(len(mazeNotSearched)):
             sim.step()
             moveDrone()
-            if (distance(listOfPoints[p],[float(mazeNotSearched[k][0])+.125, float(mazeNotSearched[k][1])+.125]) < closestDist or closestDist == -1) and maze[k][2] != "V" and maze[k][2] != "B":
+            if (distance(listOfBackPoints[p],[float(mazeNotSearched[k][0])+.125, float(mazeNotSearched[k][1])+.125]) < closestDist or closestDist == -1) and maze[k][2] != "V" and maze[k][2] != "B":
                 col = False
                         # Need to make sure that the point isn't too close to the maze walls or that the edge connecting the new point and the closest is through a wall
                 for i in range(len(obstacles)):
                     p1 = (obstacles[i][0][0], obstacles[i][0][1])  # (x1, y1)
                     p2 = (obstacles[i][1][0], obstacles[i][1][1])  # (x2, y2)
                     # If the edge between the points goes through a wall, it is forced back to the correct side of the wall
-                    if line_intersection(p1,p2, listOfPoints[p], [float(mazeNotSearched[k][0])+.125, float(mazeNotSearched[k][1])+.125]) == True:
+                    if line_intersection(p1,p2, listOfBackPoints[p], [float(mazeNotSearched[k][0])+.125, float(mazeNotSearched[k][1])+.125]) == True:
                         col = True
 
                     if is_between_points_dist(p1,p2, [float(mazeNotSearched[k][0])+.125, float(mazeNotSearched[k][1])+.125]) == True:
                         col = True
 
-                    if (is_between_points(listOfPoints[p], [float(mazeNotSearched[k][0])+.125, float(mazeNotSearched[k][1])+.125], p1, .45) == True and
-                        (listOfPoints[p][0]-.2 < p1[0] < float(mazeNotSearched[k][0])+.125+.2 or listOfPoints[p][0]+.2 > p1[0] > float(mazeNotSearched[k][0])+.125-.2) and
-                        (listOfPoints[p][1]-.2 < p1[1] < float(mazeNotSearched[k][1])+.125+.2 or listOfPoints[p][1]+.2 > p1[1] > float(mazeNotSearched[k][1])+.125-.2)):
+                    if (is_between_points(listOfBackPoints[p], [float(mazeNotSearched[k][0])+.125, float(mazeNotSearched[k][1])+.125], p1, .45) == True and
+                        (listOfBackPoints[p][0]-.2 < p1[0] < float(mazeNotSearched[k][0])+.125+.2 or listOfBackPoints[p][0]+.2 > p1[0] > float(mazeNotSearched[k][0])+.125-.2) and
+                        (listOfBackPoints[p][1]-.2 < p1[1] < float(mazeNotSearched[k][1])+.125+.2 or listOfBackPoints[p][1]+.2 > p1[1] > float(mazeNotSearched[k][1])+.125-.2)):
                         col = True
-                    if (is_between_points(listOfPoints[p], [float(mazeNotSearched[k][0])+.125, float(mazeNotSearched[k][1])+.125], p2, .45) == True and
-                        (listOfPoints[p][0]-.2 < p2[0] < float(mazeNotSearched[k][0])+.125+.2 or listOfPoints[p][0]+.2 > p2[0] > float(mazeNotSearched[k][0])+.125-.2) and
-                        (listOfPoints[p][1]-.2 < p2[1] < float(mazeNotSearched[k][1])+.125+.2 or listOfPoints[p][1]+.2 > p2[1] > float(mazeNotSearched[k][1])+.125-.2)):
+                    if (is_between_points(listOfBackPoints[p], [float(mazeNotSearched[k][0])+.125, float(mazeNotSearched[k][1])+.125], p2, .45) == True and
+                        (listOfBackPoints[p][0]-.2 < p2[0] < float(mazeNotSearched[k][0])+.125+.2 or listOfBackPoints[p][0]+.2 > p2[0] > float(mazeNotSearched[k][0])+.125-.2) and
+                        (listOfBackPoints[p][1]-.2 < p2[1] < float(mazeNotSearched[k][1])+.125+.2 or listOfBackPoints[p][1]+.2 > p2[1] > float(mazeNotSearched[k][1])+.125-.2)):
                         col = True
                 if col == False:
                     closestLoc = [float(mazeNotSearched[k][0])+.125, float(mazeNotSearched[k][1])+.125]
-                    closestDist = distance(listOfPoints[p],[float(mazeNotSearched[k][0])+.125, float(mazeNotSearched[k][1])+.125])#abs(listOfPoints[p][0] - float(mazeNotSearched[k][0])+.125) + abs(listOfPoints[p][1] - float(mazeNotSearched[k][1])+.125)
+                    closestDist = distance(listOfBackPoints[p],[float(mazeNotSearched[k][0])+.125, float(mazeNotSearched[k][1])+.125])#abs(listOfPoints[p][0] - float(mazeNotSearched[k][0])+.125) + abs(listOfPoints[p][1] - float(mazeNotSearched[k][1])+.125)
                     print(closestDist)
                     if(closestDist < .75 and closestDist != -1):
                         break
         if closestDist != -1:
             break
+        listOfBackPoints.pop(p)
         p = p-1
         print(p)
         if p == -1:
@@ -480,6 +482,7 @@ def newRRTNode():
         
         # Storing the new point, edge, and cost of the node
         listOfPoints.append([newPoint[0], newPoint[1]])
+        listOfBackPoints.append([newPoint[0], newPoint[1]])
         listOfCosts.append(curLowestCost)
         listOfEdges.append([closestPoint[0],closestPoint[1], newPoint[0], newPoint[1]])
         
@@ -734,6 +737,7 @@ else:
 #Some neccessary variables for later
 objectAbsolutePosition=np.array(sim.getObjectPosition(robot,sim.handle_world))
 listOfPoints = [[objectAbsolutePosition[0], objectAbsolutePosition[1]]]
+listOfBackPoints = [[objectAbsolutePosition[0], objectAbsolutePosition[1]]]
 listOfCosts = [0]
 listOfEdges =[]
 startPoint = [objectAbsolutePosition[0], objectAbsolutePosition[1]]
@@ -752,10 +756,10 @@ newPointIndex = -1
 
 
 # Creating a grid to map obstacles to
-x = -3
-while x <= 3:
-    y = -3
-    while y <= 3:
+x = -4
+while x <= 7:
+    y = -4
+    while y <= 7:
         maze.append([x, y, "U"])
         y = y+.25
     x = x +.25
@@ -919,7 +923,6 @@ while sim.getSimulationState()!=0:
                     sim.setObjectPosition(target, sim.handle_world, [checkX, checkY, .7])
                     needNewPoint = False
             if len(pointsToTraverse) == 1:
-                pointsToTraverse.pop(0)
                 needDij = False
                 newPointIndex = len(listOfPoints)-1
         elif abs(objectAbsolutePosition[0] - checkX) < .1 and abs(objectAbsolutePosition[1] -checkY) < .1:
